@@ -10,16 +10,16 @@ jobs:
           - macos-latest
           - ubuntu-latest
           - windows-latest
-        ocaml-compiler:
-          - 4.12.x
+        ocaml-version:
+          - 4.12.1
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
-      - name: Set up OCaml ${{ matrix.ocaml-compiler }}
+      - name: Set up OCaml ${{ matrix.ocaml-version }}
         uses: ocaml/setup-ocaml@v1.1.11
         with:
-          ocaml-compiler: ${{ matrix.ocaml-compiler }}
+          ocaml-compiler: ${{ matrix.ocaml-version }}
       - run: opam install . --deps-only --with-test
       - run: opam exec -- dune build
       - run: opam exec -- dune runtest
