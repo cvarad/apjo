@@ -1,0 +1,1 @@
+let () = assert (String.equal Apjo.Msg.greeting "Hello, World!")
