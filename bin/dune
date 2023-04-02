@@ -1,4 +1,0 @@
-(executable
- (public_name apjo)
- (name main)
- (libraries apjo))
