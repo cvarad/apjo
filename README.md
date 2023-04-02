@@ -1,0 +1,1 @@
+![Build & Test](https://github.com/cvarad/apjo/actions/workflows/main.yml/badge.svg)
