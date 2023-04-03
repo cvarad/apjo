@@ -1,18 +1,9 @@
 open Apjo.Lib
+open ParserApplicative
 
-let split (s : string) : char * string = s.[0], String.sub s 1 (String.length s - 1)
-
-let letter c =
-  Parser
-    (fun s ->
-      if s = ""
-      then None
-      else (
-        match split s with
-        | c', s' when c' = c -> Some (c', s')
-        | _ -> None))
-;;
-
-match parse (letter 'c') "chocolate" with
-| Some (_, s) -> print_endline s
-| None -> print_endline "None";;
+(* Test null *)
+let () = assert((apply js_value_p "null") = Some(JSNull, ""));;
+(* Test bool true *)
+let () = assert((apply js_value_p "true") = Some((JSBool true), ""));;
+(* Test bool false *)
+let () = assert((apply js_value_p "false") = Some((JSBool false), ""));;
