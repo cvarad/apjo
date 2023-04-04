@@ -85,7 +85,24 @@ module ParserApplicative : Parser = struct
   ;;
 end
 
-let split (s : string) : char * string = s.[0], String.sub s 1 (String.length s - 1)
+let split s = s.[0], String.sub s 1 (String.length s - 1)
+
+(* let is_digit c = match c with | '0' .. '9' -> true | _ -> false *)
+let is_digit c =
+  let v = Char.code c in
+  v >= 48 && v < 58
+;;
+
+(* Takes a predicate f and a string s, and returns a pair of strings (s1, s2).
+   s1 is the substring obtained after applying f on each char of s until the
+   first false is returned by f.
+   s2 is the remaining substring *)
+let until (f : char -> bool) (s : string) : string * string =
+  let n = String.length s in
+  let rec aux i = if i < n && f s.[i] then aux (i + 1) else i in
+  let i = aux 0 in
+  String.sub s 0 i, String.sub s i (n - i)
+;;
 
 open ParserApplicative
 
@@ -118,6 +135,14 @@ let string_parser pattern =
   | _ -> None
 ;;
 
+let until_parser f =
+  mk
+  @@ fun s ->
+  match until f s with
+  | "", _ -> None
+  | s -> Some s
+;;
+
 let js_null_p = (fun _ -> JSNull) <$> string_parser "null"
 
 let js_bool_p =
@@ -125,4 +150,6 @@ let js_bool_p =
   <$> (string_parser "true" <|> string_parser "false")
 ;;
 
-let js_value_p = js_null_p <|> js_bool_p
+let js_number_p = (fun s -> JSNumber (int_of_string s)) <$> until_parser is_digit
+let js_string_p = (fun s -> JSString s) <$> (mk @@ fun s -> Some ("", s))
+let js_value_p = js_null_p <|> js_bool_p <|> js_number_p <|> js_string_p
