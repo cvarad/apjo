@@ -9,3 +9,5 @@ let () = assert((apply js_value_p "true") = Some((JSBool true), ""));;
 let () = assert((apply js_value_p "false") = Some((JSBool false), ""));;
 (* Test number *)
 let () = assert((apply js_value_p "52345") = Some((JSNumber 52345), ""));;
+(* Test string *)
+let () = assert((apply js_string_p "\"hello\"") = Some((JSString "hello"), ""));;

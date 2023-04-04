@@ -180,4 +180,4 @@ let js_string_p =
   <* char_parser '"'
 ;;
 
-let js_value_p = js_null_p <|> js_bool_p <|> js_number_p <|> js_string_p <|> js_array_p
+let js_value_p = js_null_p <|> js_bool_p <|> js_number_p <|> js_string_p
