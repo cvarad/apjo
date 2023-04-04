@@ -1,5 +1,5 @@
 type js_value =
-  | JSString of string
+  | JSString of string (* TODO: parse escaped strings *)
   | JSNumber of int (* Float support later! *)
   | JSObject of (string * js_value) list
   | JSArray of js_value list (* list prohibits random-access! *)
@@ -19,6 +19,8 @@ module type Applicative = sig
   val pure : 'a -> 'a t
   val fseq : ('a -> 'b) t -> 'a t -> 'b t
   val ( <*> ) : ('a -> 'b) t -> 'a t -> 'b t
+  val ( *> ) : 'a t -> 'b t -> 'b t
+  val ( <* ) : 'a t -> 'b t -> 'a t
 end
 
 module type Alternative = sig
@@ -75,6 +77,25 @@ module ParserApplicative : Parser = struct
     | _ -> None
   ;; *)
   let ( <*> ) = fseq
+
+  let ( *> ) (Parser a) (Parser b) =
+    mk
+    @@ fun s ->
+    match a s with
+    | Some (_, s') -> b s'
+    | None -> None
+  ;;
+
+  let ( <* ) (Parser a) (Parser b) =
+    mk
+    @@ fun s ->
+    match a s with
+    | Some (v, s') ->
+      (match b s' with
+      | Some (_, s'') -> Some (v, s'')
+      | None -> None)
+    | None -> None
+  ;;
 
   let ( <|> ) (Parser a) (Parser b) =
     mk
@@ -143,6 +164,7 @@ let until_parser f =
   | s -> Some s
 ;;
 
+let ws_parser = until_parser (fun c -> List.mem c [ ' '; '\n'; '\r'; '\t' ])
 let js_null_p = (fun _ -> JSNull) <$> string_parser "null"
 
 let js_bool_p =
@@ -151,5 +173,11 @@ let js_bool_p =
 ;;
 
 let js_number_p = (fun s -> JSNumber (int_of_string s)) <$> until_parser is_digit
-let js_string_p = (fun s -> JSString s) <$> (mk @@ fun s -> Some ("", s))
-let js_value_p = js_null_p <|> js_bool_p <|> js_number_p <|> js_string_p
+
+let js_string_p =
+  (fun s -> JSString s)
+  <$> char_parser '"' *> until_parser (( <> ) '"')
+  <* char_parser '"'
+;;
+
+let js_value_p = js_null_p <|> js_bool_p <|> js_number_p <|> js_string_p <|> js_array_p
