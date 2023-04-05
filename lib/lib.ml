@@ -1,3 +1,5 @@
+exception IllegalArgumentException
+
 type js_value =
   | JSString of string (* TODO: parse escaped strings *)
   | JSNumber of int (* Float + Negative support later! *)
@@ -261,4 +263,15 @@ and dump_string json =
 let dump_file json f =
   let oc = open_out f in
   let () = Printf.fprintf oc "%s" (dump_string json) in
-  close_out oc;
+  close_out oc
+;;
+
+let obj_get k = function
+  | JSObject o -> List.assoc k o
+  | _ -> raise IllegalArgumentException
+;;
+
+let arr_nth n = function
+  | JSArray a -> List.nth a n
+  | _ -> raise IllegalArgumentException
+;;
