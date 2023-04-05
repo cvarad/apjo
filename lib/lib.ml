@@ -166,6 +166,11 @@ let non_empty_str p =
 ;;
 
 let ws_parser = until_parser (fun c -> List.mem c [ ' '; '\n'; '\r'; '\t' ])
+
+let string_literal_parser =
+  char_parser '"' *> until_parser (( <> ) '"') <* char_parser '"'
+;;
+
 let js_null_p = (fun _ -> JSNull) <$> string_parser "null"
 
 let js_bool_p =
@@ -177,11 +182,7 @@ let js_number_p =
   (fun s -> JSNumber (int_of_string s)) <$> non_empty_str (until_parser is_digit)
 ;;
 
-let js_string_p : string -> (js_value * string) option =
-  (fun s -> JSString s)
-  <$> char_parser '"' *> until_parser (( <> ) '"')
-  <* char_parser '"'
-;;
+let js_string_p = (fun s -> JSString s) <$> string_literal_parser
 
 let many p s =
   let rec aux s =
@@ -194,7 +195,7 @@ let many p s =
   Some (aux s)
 ;;
 
-let array_elements p delim = (fun v l -> v :: l) <$> p <*> many (delim *> p) <|> pure []
+let elements p delim = (fun v l -> v :: l) <$> p <*> many (delim *> p) <|> pure []
 
 (* Need to explicitly mention the argument 's' for mutually recursive
    definitions. Otherwise, the compiler won't know it's a function. *)
@@ -202,12 +203,26 @@ let rec js_array_p s =
   let delim = ws_parser *> char_parser ',' <* ws_parser in
   let array_parser =
     (fun v -> JSArray v)
-    <$> (char_parser '[' *> ws_parser *> array_elements js_value_p delim
+    <$> (char_parser '[' *> ws_parser *> elements js_value_p delim
         <* ws_parser
         <* char_parser ']')
   in
   array_parser s
 
+and js_object_p s =
+  let delim = ws_parser *> char_parser ',' <* ws_parser in
+  let object_values =
+    (fun s v -> s, v)
+    <$> (string_literal_parser <* ws_parser <* char_parser ':' <* ws_parser)
+    <*> js_value_p
+  in
+  ((fun v -> JSObject v)
+  <$> char_parser '{' *> ws_parser *> elements object_values delim
+  <* ws_parser
+  <* char_parser '}')
+    s
+
 and js_value_p s =
-  (js_null_p <|> js_bool_p <|> js_number_p <|> js_string_p <|> js_array_p) s
+  (js_null_p <|> js_bool_p <|> js_number_p <|> js_string_p <|> js_array_p <|> js_object_p)
+    s
 ;;
