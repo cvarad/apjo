@@ -226,3 +226,17 @@ and js_value_p s =
   (js_null_p <|> js_bool_p <|> js_number_p <|> js_string_p <|> js_array_p <|> js_object_p)
     s
 ;;
+
+let load_string s =
+  match js_value_p (String.trim s) with
+  | Some (v, "") -> v
+  | _ -> failwith "Parsing error!"
+;;
+
+(* TODO: Add error handling *)
+let load_file f =
+  let ic = open_in f in
+  let s = really_input_string ic (in_channel_length ic) in
+  let _ = close_in ic in
+  load_string s
+;;

@@ -1,0 +1,15 @@
+{
+	"events": [
+		{
+			"name": "Artist A concert",
+			"cost": 450,
+			"time": "2023-04-05T06:50:38.703Z"
+		},
+		{
+			"name": "Artist B concert",
+			"cost": 1000,
+			"time": "2024-04-05T05:50:38.703Z"	
+		}
+	],
+	"data": true
+}

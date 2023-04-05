@@ -1,3 +1,4 @@
 (test
  (libraries apjo)
+ (deps (glob_files_rec test.json))
  (name apjo))
