@@ -18,8 +18,9 @@
 (package
  (name apjo)
  (synopsis "Applicative Parser for JSON in OCaml")
- (description "A longer description")
- (depends ocaml dune)
+ (description
+  "A JSON parser written in pure OCaml, without any external dependencies. The parser uses Functional Parsing internally.")
+ (depends (ocaml (= 4.12.1)) dune)
  (tags
   (json parser applicative)))
 
