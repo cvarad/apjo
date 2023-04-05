@@ -1,6 +1,6 @@
 type js_value =
   | JSString of string (* TODO: parse escaped strings *)
-  | JSNumber of int (* Float support later! *)
+  | JSNumber of int (* Float + Negative support later! *)
   | JSObject of (string * js_value) list
   | JSArray of js_value list (* list prohibits random-access! *)
   | JSBool of bool
@@ -9,7 +9,7 @@ type js_value =
 module type Functor = sig
   type 'a t = string -> ('a * string) option
 
-  val fmap : ('a -> 'b) -> 'a t -> 'b t
+  (* fmap *)
   val ( <$> ) : ('a -> 'b) -> 'a t -> 'b t
 end
 
@@ -17,7 +17,8 @@ module type Applicative = sig
   include Functor
 
   val pure : 'a -> 'a t
-  val fseq : ('a -> 'b) t -> 'a t -> 'b t
+
+  (* fseq *)
   val ( <*> ) : ('a -> 'b) t -> 'a t -> 'b t
   val ( *> ) : 'a t -> 'b t -> 'b t
   val ( <* ) : 'a t -> 'b t -> 'a t
@@ -65,7 +66,7 @@ module ParserApplicative : Parser = struct
      but does essentially the same thing that fmap does. This is 
      for ease of understanding fseq.
      TODO: Use the option monad to avoid pattern matching *)
-  (* let fseq (Parser t) (Parser a) =
+  (* let fseq (t) (a) =
     mk
     @@ fun s ->
     match t s with
