@@ -22,10 +22,7 @@ let () = assert (load_string "[52345]" = JSArray [ JSNumber 52345 ])
 let () = assert (load_string "[]" = JSArray [])
 
 (* Test object *)
-let () =
-  assert (
-    load_string "{\"hello\": 5345}" = JSObject [ "hello", JSNumber 5345 ])
-;;
+let () = assert (load_string "{\"hello\": 5345}" = JSObject [ "hello", JSNumber 5345 ])
 
 (* Test empty object *)
 let () = assert (load_string "{}" = JSObject []);;
@@ -59,4 +56,11 @@ let json_struct =
     ; "data", JSBool true
     ]
 ;;
-let () = assert(load_file "test.json" = json_struct)
+
+let () = assert (load_file "test.json" = json_struct)
+
+let () =
+  assert (
+    dump_file json_struct "write_read_test.json";
+    load_file "write_read_test.json" = json_struct)
+;;

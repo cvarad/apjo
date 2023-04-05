@@ -241,3 +241,24 @@ let load_file f =
   let _ = close_in ic in
   load_string s
 ;;
+
+let rec string_of_list l = "[" ^ String.concat ", " (List.map dump_string l) ^ "]"
+
+and string_of_object o =
+  let l = List.map (fun (k, v) -> "\"" ^ k ^ "\": " ^ dump_string v) o in
+  "{" ^ String.concat ", " l ^ "}"
+
+and dump_string json =
+  match json with
+  | JSNull -> "null"
+  | JSBool b -> Bool.to_string b
+  | JSNumber n -> string_of_int n
+  | JSString s -> "\"" ^ s ^ "\""
+  | JSArray a -> string_of_list a
+  | JSObject o -> string_of_object o
+;;
+
+let dump_file json f =
+  let oc = open_out f in
+  let () = Printf.fprintf oc "%s" (dump_string json) in
+  close_out oc;
