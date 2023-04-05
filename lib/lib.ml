@@ -7,7 +7,7 @@ type js_value =
   | JSNull
 
 module type Functor = sig
-  type 'a t
+  type 'a t = string -> ('a * string) option
 
   val fmap : ('a -> 'b) -> 'a t -> 'b t
   val ( <$> ) : ('a -> 'b) -> 'a t -> 'b t
@@ -37,13 +37,12 @@ module type Parser = sig
 end
 
 module ParserApplicative : Parser = struct
-  type 'a parser = Parser of (string -> ('a * string) option)
-  type 'a t = 'a parser
+  type 'a t = string -> ('a * string) option
 
-  let mk f = Parser f
-  let apply (Parser f) s = f s
+  let mk f = f
+  let apply f s = f s
 
-  let fmap f (Parser p) =
+  let fmap f p =
     mk
     @@ fun s ->
     match p s with
@@ -52,9 +51,9 @@ module ParserApplicative : Parser = struct
   ;;
 
   let ( <$> ) = fmap
-  let pure a = Parser (fun s -> Some (a, s))
+  let pure a s = Some (a, s)
 
-  let fseq (Parser t) a =
+  let fseq t a =
     mk
     @@ fun s ->
     match t s with
@@ -78,7 +77,7 @@ module ParserApplicative : Parser = struct
   ;; *)
   let ( <*> ) = fseq
 
-  let ( *> ) (Parser a) (Parser b) =
+  let ( *> ) a b =
     mk
     @@ fun s ->
     match a s with
@@ -86,7 +85,7 @@ module ParserApplicative : Parser = struct
     | None -> None
   ;;
 
-  let ( <* ) (Parser a) (Parser b) =
+  let ( <* ) a b =
     mk
     @@ fun s ->
     match a s with
@@ -97,7 +96,7 @@ module ParserApplicative : Parser = struct
     | None -> None
   ;;
 
-  let ( <|> ) (Parser a) (Parser b) =
+  let ( <|> ) a b =
     mk
     @@ fun s ->
     match a s with
@@ -156,12 +155,14 @@ let string_parser pattern =
   | _ -> None
 ;;
 
-let until_parser f =
+let until_parser f = mk @@ fun s -> Some (until f s)
+
+let non_empty_str p =
   mk
   @@ fun s ->
-  match until f s with
-  | "", _ -> None
-  | s -> Some s
+  match p s with
+  | Some ("", _) -> None
+  | x -> x
 ;;
 
 let ws_parser = until_parser (fun c -> List.mem c [ ' '; '\n'; '\r'; '\t' ])
@@ -172,12 +173,41 @@ let js_bool_p =
   <$> (string_parser "true" <|> string_parser "false")
 ;;
 
-let js_number_p = (fun s -> JSNumber (int_of_string s)) <$> until_parser is_digit
+let js_number_p =
+  (fun s -> JSNumber (int_of_string s)) <$> non_empty_str (until_parser is_digit)
+;;
 
-let js_string_p =
+let js_string_p : string -> (js_value * string) option =
   (fun s -> JSString s)
   <$> char_parser '"' *> until_parser (( <> ) '"')
   <* char_parser '"'
 ;;
 
-let js_value_p = js_null_p <|> js_bool_p <|> js_number_p <|> js_string_p
+let many p s =
+  let rec aux s =
+    match p s with
+    | Some (v, s') ->
+      let l, s'' = aux s' in
+      v :: l, s''
+    | None -> [], s
+  in
+  Some (aux s)
+;;
+
+let array_elements p delim = (fun v l -> v :: l) <$> p <*> many (delim *> p) <|> pure []
+
+(* Need to explicitly mention the argument 's' for mutually recursive
+   definitions. Otherwise, the compiler won't know it's a function. *)
+let rec js_array_p s =
+  let delim = ws_parser *> char_parser ',' <* ws_parser in
+  let array_parser =
+    (fun v -> JSArray v)
+    <$> (char_parser '[' *> ws_parser *> array_elements js_value_p delim
+        <* ws_parser
+        <* char_parser ']')
+  in
+  array_parser s
+
+and js_value_p s =
+  (js_null_p <|> js_bool_p <|> js_number_p <|> js_string_p <|> js_array_p) s
+;;

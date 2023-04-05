@@ -11,3 +11,7 @@ let () = assert((apply js_value_p "false") = Some((JSBool false), ""));;
 let () = assert((apply js_value_p "52345") = Some((JSNumber 52345), ""));;
 (* Test string *)
 let () = assert((apply js_string_p "\"hello\"") = Some((JSString "hello"), ""));;
+(* Test array *)
+let () = assert((apply js_value_p "[52345]") = Some((JSArray [JSNumber 52345]), ""));;
+(* Test empty array *)
+let () = assert((apply js_value_p "[]") = Some((JSArray []), ""));;
