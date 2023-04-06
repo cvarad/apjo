@@ -10,19 +10,19 @@ let () = assert (load_string "true" = JSBool true)
 let () = assert (load_string "false" = JSBool false)
 
 (* Test number *)
-let () = assert (load_string "52345" = JSNumber 52345)
+let () = assert (load_string "52345" = JSNumber 52345.)
 
 (* Test string *)
 let () = assert (load_string "\"hello\"" = JSString "hello")
 
 (* Test array *)
-let () = assert (load_string "[52345]" = JSArray [ JSNumber 52345 ])
+let () = assert (load_string "[52345]" = JSArray [ JSNumber 52345. ])
 
 (* Test empty array *)
 let () = assert (load_string "[]" = JSArray [])
 
 (* Test object *)
-let () = assert (load_string "{\"hello\": 5345}" = JSObject [ "hello", JSNumber 5345 ])
+let () = assert (load_string "{\"hello\": 5345}" = JSObject [ "hello", JSNumber 5345. ])
 
 (* Test empty object *)
 let () = assert (load_string "{}" = JSObject []);;
@@ -31,7 +31,7 @@ let () = assert (load_string "{}" = JSObject []);;
 let json_string = "{\"key1\": [1, 2, true, {}],\"key2\": { \"key3\": null}}" in
 let json_struct =
   JSObject
-    [ "key1", JSArray [ JSNumber 1; JSNumber 2; JSBool true; JSObject [] ]
+    [ "key1", JSArray [ JSNumber 1.; JSNumber 2.; JSBool true; JSObject [] ]
     ; "key2", JSObject [ "key3", JSNull ]
     ]
 in
@@ -44,12 +44,12 @@ let json_struct =
       , JSArray
           [ JSObject
               [ "name", JSString "Artist A concert"
-              ; "cost", JSNumber 450
+              ; "cost", JSNumber 450.
               ; "time", JSString "2023-04-05T06:50:38.703Z"
               ]
           ; JSObject
               [ "name", JSString "Artist B concert"
-              ; "cost", JSNumber 1000
+              ; "cost", JSNumber 1000.
               ; "time", JSString "2024-04-05T05:50:38.703Z"
               ]
           ] )

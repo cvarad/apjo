@@ -2,9 +2,9 @@ exception IllegalArgumentException
 
 type js_value =
   | JSString of string (* TODO: parse escaped strings *)
-  | JSNumber of int (* Float + Negative support later! *)
+  | JSNumber of float
   | JSObject of (string * js_value) list
-  | JSArray of js_value list (* list prohibits random-access! *)
+  | JSArray of js_value list
   | JSBool of bool
   | JSNull
 
@@ -182,7 +182,13 @@ let js_bool_p =
 ;;
 
 let js_number_p =
-  (fun s -> JSNumber (int_of_string s)) <$> non_empty_str (until_parser is_digit)
+  (fun a b c -> JSNumber (float_of_string (a ^ b ^ c)))
+  <$> (string_parser "-" <|> pure "")
+  <*> non_empty_str (until_parser is_digit)
+  <*> ((fun a b -> a ^ b)
+      <$> string_parser "."
+      <*> non_empty_str (until_parser is_digit)
+      <|> pure "")
 ;;
 
 let js_string_p = (fun s -> JSString s) <$> string_literal_parser
@@ -254,7 +260,7 @@ and dump_string json =
   match json with
   | JSNull -> "null"
   | JSBool b -> Bool.to_string b
-  | JSNumber n -> string_of_int n
+  | JSNumber n -> Printf.sprintf "%g" n
   | JSString s -> "\"" ^ s ^ "\""
   | JSArray a -> string_of_list a
   | JSObject o -> string_of_object o

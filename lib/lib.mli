@@ -1,6 +1,6 @@
 type js_value =
   | JSString of string
-  | JSNumber of int
+  | JSNumber of float
   | JSObject of (string * js_value) list
   | JSArray of js_value list
   | JSBool of bool
