@@ -35,19 +35,16 @@ end
 module type Parser = sig
   include Alternative
 
-  val mk : (string -> ('a * string) option) -> 'a t
   val apply : 'a t -> string -> ('a * string) option
 end
 
 module ParserApplicative : Parser = struct
   type 'a t = string -> ('a * string) option
 
-  let mk f = f
   let apply f s = f s
 
   let fmap f p =
-    mk
-    @@ fun s ->
+    fun s ->
     match p s with
     | Some (a, s') -> Some (f a, s')
     | None -> None
@@ -57,8 +54,7 @@ module ParserApplicative : Parser = struct
   let pure a s = Some (a, s)
 
   let fseq t a =
-    mk
-    @@ fun s ->
+    fun s ->
     match t s with
     | Some (g, s') -> apply (fmap g a) s'
     | None -> None
@@ -69,8 +65,7 @@ module ParserApplicative : Parser = struct
      for ease of understanding fseq.
      TODO: Use the option monad to avoid pattern matching *)
   (* let fseq (t) (a) =
-    mk
-    @@ fun s ->
+    fun s ->
     match t s with
     | Some (f, s') ->
       (match a s' with
@@ -81,16 +76,14 @@ module ParserApplicative : Parser = struct
   let ( <*> ) = fseq
 
   let ( *> ) a b =
-    mk
-    @@ fun s ->
+    fun s ->
     match a s with
     | Some (_, s') -> b s'
     | None -> None
   ;;
 
   let ( <* ) a b =
-    mk
-    @@ fun s ->
+    fun s ->
     match a s with
     | Some (v, s') ->
       (match b s' with
@@ -100,8 +93,7 @@ module ParserApplicative : Parser = struct
   ;;
 
   let ( <|> ) a b =
-    mk
-    @@ fun s ->
+    fun s ->
     match a s with
     | Some (v, s') -> Some (v, s')
     | None -> b s
@@ -131,8 +123,7 @@ open ParserApplicative
 
 (* TODO: avoid string split *)
 let char_parser c =
-  mk
-  @@ fun s ->
+  fun s ->
   match s with
   | "" -> None
   | s ->
@@ -144,8 +135,7 @@ let char_parser c =
    Instead, it converts the input pattern to char list and uses that for 
    matching. TODO: tail recursive *)
 let string_parser pattern =
-  mk
-  @@ fun s ->
+  fun s ->
   let pat_chars = List.init (String.length pattern) (String.get pattern) in
   let pat_parsers = List.map char_parser pat_chars in
   let chars_to_str l = String.of_seq (List.to_seq l) in
@@ -158,11 +148,10 @@ let string_parser pattern =
   | _ -> None
 ;;
 
-let until_parser f = mk @@ fun s -> Some (until f s)
+let until_parser f = fun s -> Some (until f s)
 
 let non_empty_str p =
-  mk
-  @@ fun s ->
+  fun s ->
   match p s with
   | Some ("", _) -> None
   | x -> x
