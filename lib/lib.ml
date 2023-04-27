@@ -9,7 +9,8 @@ type js_value =
   | JSNull
 
 module type Functor = sig
-  type 'a t = string -> ('a * string) option
+  type s = char list
+  type 'a t = s -> ('a * s) option
 
   (* fmap *)
   val ( <$> ) : ('a -> 'b) -> 'a t -> 'b t
@@ -34,17 +35,13 @@ end
 
 module type Parser = sig
   include Alternative
-
-  val apply : 'a t -> string -> ('a * string) option
 end
 
 module ParserApplicative : Parser = struct
-  type 'a t = string -> ('a * string) option
+  type s = char list
+  type 'a t = s -> ('a * s) option
 
-  let apply f s = f s
-
-  let fmap f p =
-    fun s ->
+  let fmap f p s =
     match p s with
     | Some (a, s') -> Some (f a, s')
     | None -> None
@@ -53,10 +50,9 @@ module ParserApplicative : Parser = struct
   let ( <$> ) = fmap
   let pure a s = Some (a, s)
 
-  let fseq t a =
-    fun s ->
+  let fseq t a s =
     match t s with
-    | Some (g, s') -> apply (fmap g a) s'
+    | Some (g, s') -> (fmap g a) s'
     | None -> None
   ;;
 
@@ -75,15 +71,13 @@ module ParserApplicative : Parser = struct
   ;; *)
   let ( <*> ) = fseq
 
-  let ( *> ) a b =
-    fun s ->
+  let ( *> ) a b s =
     match a s with
     | Some (_, s') -> b s'
     | None -> None
   ;;
 
-  let ( <* ) a b =
-    fun s ->
+  let ( <* ) a b s =
     match a s with
     | Some (v, s') ->
       (match b s' with
@@ -92,50 +86,45 @@ module ParserApplicative : Parser = struct
     | None -> None
   ;;
 
-  let ( <|> ) a b =
-    fun s ->
+  let ( <|> ) a b s =
     match a s with
     | Some (v, s') -> Some (v, s')
     | None -> b s
   ;;
 end
 
-let split s = s.[0], String.sub s 1 (String.length s - 1)
-
-(* let is_digit c = match c with | '0' .. '9' -> true | _ -> false *)
 let is_digit c =
   let v = Char.code c in
   v >= 48 && v < 58
 ;;
 
+open ParserApplicative
+
 (* Takes a predicate f and a string s, and returns a pair of strings (s1, s2).
    s1 is the substring obtained after applying f on each char of s until the
    first false is returned by f.
    s2 is the remaining substring *)
-let until (f : char -> bool) (s : string) : string * string =
-  let n = String.length s in
-  let rec aux i = if i < n && f s.[i] then aux (i + 1) else i in
-  let i = aux 0 in
-  String.sub s 0 i, String.sub s i (n - i)
+let until (f : char -> bool) : string t =
+ fun s ->
+  let rec aux acc s =
+    match s with
+    | c :: s' when f c -> aux (c :: acc) s'
+    | _ -> String.of_seq (List.to_seq (List.rev acc)), s
+  in
+  Some (aux [] s)
 ;;
 
-open ParserApplicative
-
 (* TODO: avoid string split *)
-let char_parser c =
-  fun s ->
+let char_parser c s =
   match s with
-  | "" -> None
-  | s ->
-    let c', s' = split s in
-    if c' = c then Some (c', s') else None
+  | x :: s' when c = x -> Some (c, s')
+  | _ -> None
 ;;
 
 (* A string parser that avoids string splits and concats
    Instead, it converts the input pattern to char list and uses that for 
    matching. TODO: tail recursive *)
-let string_parser pattern =
-  fun s ->
+let string_parser pattern s =
   let pat_chars = List.init (String.length pattern) (String.get pattern) in
   let pat_parsers = List.map char_parser pat_chars in
   let chars_to_str l = String.of_seq (List.to_seq l) in
@@ -143,15 +132,15 @@ let string_parser pattern =
     | [] -> pure []
     | p :: ps -> (fun c l -> c :: l) <$> p <*> aux ps
   in
-  match apply (aux pat_parsers) s with
+  match (aux pat_parsers) s with
   | Some (parsed_chars, s') -> Some (chars_to_str parsed_chars, s')
   | _ -> None
 ;;
 
-let until_parser f = fun s -> Some (until f s)
+let until_parser f : string t = fun s -> until f s
 
-let non_empty_str p =
-  fun s ->
+let non_empty_str p : string t =
+ fun s ->
   match p s with
   | Some ("", _) -> None
   | x -> x
@@ -215,9 +204,10 @@ and js_object_p s =
     <*> js_value_p
   in
   ((fun v -> JSObject v)
-  <$> char_parser '{' *> ws_parser *> elements object_values delim
+  <$> ws_parser *> char_parser '{' *> ws_parser *> elements object_values delim
   <* ws_parser
-  <* char_parser '}')
+  <* char_parser '}'
+  <* ws_parser)
     s
 
 and js_value_p s =
@@ -226,8 +216,8 @@ and js_value_p s =
 ;;
 
 let load_string s =
-  match js_value_p (String.trim s) with
-  | Some (v, "") -> v
+  match js_value_p (List.of_seq (String.to_seq s)) with
+  | Some (v, []) -> v
   | _ -> failwith "Parsing error!"
 ;;
 

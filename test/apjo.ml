@@ -1,43 +1,56 @@
 open Apjo.Lib
 
-(* Test null *)
-let () = assert (load_string "null" = JSNull)
+let test_null () = Alcotest.(check bool) "Parse null" true (load_string "null" = JSNull)
 
-(* Test bool true *)
-let () = assert (load_string "true" = JSBool true)
+let test_true () =
+  Alcotest.(check bool) "Parse true" true (load_string "true" = JSBool true)
+;;
 
-(* Test bool false *)
-let () = assert (load_string "false" = JSBool false)
+let test_false () =
+  Alcotest.(check bool) "Parse false" true (load_string "false" = JSBool false)
+;;
 
-(* Test number *)
-let () = assert (load_string "52345" = JSNumber 52345.)
+let test_number () =
+  Alcotest.(check bool) "Parse number" true (load_string "52345" = JSNumber 52345.)
+;;
 
-(* Test string *)
-let () = assert (load_string "\"hello\"" = JSString "hello")
+let test_string () =
+  Alcotest.(check bool) "Parse string" true (load_string "\"hello\"" = JSString "hello")
+;;
 
-(* Test array *)
-let () = assert (load_string "[52345]" = JSArray [ JSNumber 52345. ])
+let test_empty_array () =
+  Alcotest.(check bool) "Parse array" true (load_string "[]" = JSArray [])
+;;
 
-(* Test empty array *)
-let () = assert (load_string "[]" = JSArray [])
+let test_empty_object () =
+  Alcotest.(check bool) "Parse object" true (load_string "{}" = JSObject [])
+;;
 
-(* Test object *)
-let () = assert (load_string "{\"hello\": 5345}" = JSObject [ "hello", JSNumber 5345. ])
+let test_array () =
+  Alcotest.(check bool)
+    "Parse array"
+    true
+    (load_string "[52345]" = JSArray [ JSNumber 52345. ])
+;;
 
-(* Test empty object *)
-let () = assert (load_string "{}" = JSObject []);;
+let test_object () =
+  Alcotest.(check bool)
+    "Parse object"
+    true
+    (load_string "{\"hello\": 5345}" = JSObject [ "hello", JSNumber 5345. ])
+;;
 
-(* Multi-value test *)
-let json_string = "{\"key1\": [1, 2, true, {}],\"key2\": { \"key3\": null}}" in
-let json_struct =
-  JSObject
-    [ "key1", JSArray [ JSNumber 1.; JSNumber 2.; JSBool true; JSObject [] ]
-    ; "key2", JSObject [ "key3", JSNull ]
-    ]
-in
-assert (load_string json_string = json_struct)
+let test_multi_value () =
+  let json_string = "{\"key1\": [1, 2, true, {}],\"key2\": { \"key3\": null}}" in
+  let json_struct =
+    JSObject
+      [ "key1", JSArray [ JSNumber 1.; JSNumber 2.; JSBool true; JSObject [] ]
+      ; "key2", JSObject [ "key3", JSNull ]
+      ]
+  in
+  Alcotest.(check bool) "Parse object" true (load_string json_string = json_struct)
+;;
 
-(* Read from file test *)
 let json_struct =
   JSObject
     [ ( "events"
@@ -57,10 +70,37 @@ let json_struct =
     ]
 ;;
 
-let () = assert (load_file "test.json" = json_struct)
+let test_load_file () =
+  Alcotest.(check bool) "Parse file" true (load_file "test.json" = json_struct)
+;;
+
+let test_dump_load () =
+  Alcotest.(check bool)
+    "Write & Read file"
+    true
+    (dump_file json_struct "write_read_test.json";
+     load_file "write_read_test.json" = json_struct)
+;;
 
 let () =
-  assert (
-    dump_file json_struct "write_read_test.json";
-    load_file "write_read_test.json" = json_struct)
+  let open Alcotest in
+  run
+    "JSON Parser"
+    [ ( "Basic Parsing"
+      , [ test_case "Parse null" `Quick test_null
+        ; test_case "Parse true" `Quick test_true
+        ; test_case "Parse false" `Quick test_false
+        ; test_case "Parse number" `Quick test_number
+        ; test_case "Parse string" `Quick test_string
+        ; test_case "Parse empty array" `Quick test_empty_array
+        ; test_case "Parse empty object" `Quick test_empty_object
+        ] )
+    ; ( "Compound Parsing"
+      , [ test_case "Parse array" `Quick test_array
+        ; test_case "Parse oject" `Quick test_object
+        ; test_case "Parse multi-value object" `Quick test_multi_value
+        ; test_case "Parse file" `Quick test_load_file
+        ; test_case "Read-Write test" `Quick test_dump_load
+        ] )
+    ]
 ;;

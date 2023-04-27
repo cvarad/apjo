@@ -1,4 +1,4 @@
 (test
- (libraries apjo)
+ (libraries apjo alcotest)
  (deps (glob_files_rec test.json))
  (name apjo))

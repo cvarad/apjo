@@ -13,6 +13,7 @@ bug-reports: "https://github.com/cvarad/apjo/issues"
 depends: [
   "ocaml" {= "4.12.1"}
   "dune" {>= "3.7"}
+  "alcotest" {with-test}
   "odoc" {with-doc}
 ]
 build: [
